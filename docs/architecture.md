@@ -1,28 +1,33 @@
-# Application architecture
+# TaskFlow Architecture
 
-The project is intentionally organized as an application-only three-tier codebase. Deployment and automation files are not part of this structure.
-
-```text
-Presentation tier  ->  public/
-Application tier   ->  server.js + src/routes/controllers/services
-Data tier          ->  src/repositories + db/schema.sql
-```
-
-## Responsibilities
-
-- `public/`: browser interface and API client.
-- `src/routes/`: HTTP endpoint definitions.
-- `src/controllers/`: request/response handling.
-- `src/services/`: business rules and use cases.
-- `src/validators/`: input validation independent from HTTP and SQL.
-- `src/repositories/`: parameterized SQL queries and data mapping.
-- `src/config/`: database connection lifecycle.
-- `db/`: database schema and indexes.
-
-## Request flow
+This repository is organized around an application-first three-tier structure. Deployment tooling is intentionally not added yet, so the project stays focused on the business application itself.
 
 ```text
-Browser -> Route -> Controller -> Service -> Validator -> Repository -> Database
+Frontend        -> app/frontend/public
+Backend         -> app/backend/src
+Data access     -> app/backend/src/repositories + app/backend/db
 ```
 
-The frontend never connects directly to PostgreSQL. The service layer validates input before the repository executes parameterized queries.
+## Layer responsibilities
+
+### Frontend
+- HTML, CSS, and JavaScript in `app/frontend/public`
+- user interactions and API calls
+- no direct database access
+
+### Backend
+- Express application in `app/backend/server.js`
+- route definitions and request handling in `app/backend/src`
+- validation and business logic in services and validators
+
+### Data layer
+- schema in `app/backend/db/schema.sql`
+- repository-level SQL access in `app/backend/src/repositories`
+
+## Flow
+
+```text
+Browser -> frontend -> API -> service -> validator -> repository -> SQLite
+```
+
+This keeps the app ready for later expansion into deployment automation, but keeps the code clean now.

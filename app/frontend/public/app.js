@@ -1,0 +1,153 @@
+const form = document.querySelector('#task-form');
+const titleInput = document.querySelector('#title');
+const descriptionInput = document.querySelector('#description');
+const priorityInput = document.querySelector('#priority');
+const dueDateInput = document.querySelector('#dueDate');
+const taskList = document.querySelector('#task-list');
+const taskCount = document.querySelector('#task-count');
+const searchInput = document.querySelector('#search');
+const statusFilter = document.querySelector('#statusFilter');
+const message = document.querySelector('#message');
+
+const state = {
+  search: '',
+  status: 'all',
+  page: 1,
+  limit: 20
+};
+
+async function request(url, options = {}) {
+  const response = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(body.error || 'Request failed');
+  }
+
+  return response.status === 204 ? null : response.json();
+}
+
+async function loadTasks() {
+  const params = new URLSearchParams({
+    page: state.page,
+    limit: state.limit,
+    status: state.status,
+    search: state.search
+  });
+
+  const result = await request(`/api/tasks?${params.toString()}`);
+  const tasks = result.items || result || [];
+  const total = result.total || tasks.length || 0;
+
+  taskList.innerHTML = tasks.length
+    ? tasks.map(renderTask).join('')
+    : '<li class="empty">No tasks found for this selection.</li>';
+
+  taskCount.textContent = `${total} task${total === 1 ? '' : 's'}`;
+}
+
+function renderTask(task) {
+  const dueLabel = task.dueDate ? `Due ${task.dueDate}` : 'No due date';
+
+  return `
+    <li class="task-item ${task.completed ? 'done' : ''}">
+      <div class="task-row">
+        <label class="check-row">
+          <input type="checkbox" data-action="toggle" data-id="${task.id}" ${task.completed ? 'checked' : ''} />
+          <span>${escapeHtml(task.title)}</span>
+        </label>
+
+        <span class="priority-badge priority-${task.priority || 'medium'}">${escapeHtml(task.priority || 'medium')}</span>
+      </div>
+
+      <p class="description">${escapeHtml(task.description || 'No description')}</p>
+      <div class="task-meta">
+        <span>${dueLabel}</span>
+        <span>${task.completed ? 'Completed' : 'Pending'}</span>
+      </div>
+
+      <button class="delete-button" data-action="delete" data-id="${task.id}">Delete</button>
+    </li>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[char]));
+}
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  try {
+    await request('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: titleInput.value,
+        description: descriptionInput.value,
+        priority: priorityInput.value,
+        dueDate: dueDateInput.value || null
+      })
+    });
+
+    form.reset();
+    priorityInput.value = 'medium';
+    showMessage('Task created successfully.');
+    await loadTasks();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+});
+
+taskList.addEventListener('click', async (event) => {
+  const target = event.target.closest('[data-action="delete"]');
+  if (!target) return;
+
+  try {
+    await request(`/api/tasks/${target.dataset.id}`, { method: 'DELETE' });
+    await loadTasks();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+});
+
+taskList.addEventListener('change', async (event) => {
+  if (event.target.dataset.action !== 'toggle') return;
+
+  try {
+    await request(`/api/tasks/${event.target.dataset.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ completed: event.target.checked })
+    });
+    await loadTasks();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+});
+
+searchInput.addEventListener('input', (event) => {
+  state.search = event.target.value.trim();
+  state.page = 1;
+  loadTasks().catch((error) => showMessage(error.message, true));
+});
+
+statusFilter.addEventListener('change', (event) => {
+  state.status = event.target.value;
+  state.page = 1;
+  loadTasks().catch((error) => showMessage(error.message, true));
+});
+
+function showMessage(text, isError = false) {
+  message.textContent = text;
+  message.className = `message ${isError ? 'error' : ''}`;
+}
+
+loadTasks().catch((error) => showMessage(error.message, true));
