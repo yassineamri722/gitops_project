@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Task Board</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <p class="eyebrow">Three-tier starter application</p>
+      <h1>DevOps Task Board</h1>
+      <p>Manage delivery tasks with a simple frontend, API, and SQLite database.</p>
+    </header>
+
+    <section class="card">
+      <form id="task-form">
+        <input id="title" name="title" placeholder="Task title" required maxlength="120">
+        <input id="description" name="description" placeholder="Description (optional)" maxlength="300">
+        <button type="submit">Add task</button>
+      </form>
+      <p id="message" class="message" role="status"></p>
+    </section>
+
+    <section>
+      <div class="section-heading">
+        <h2>Tasks</h2>
+        <span id="task-count"></span>
+      </div>
+      <ul id="task-list" class="task-list"></ul>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
