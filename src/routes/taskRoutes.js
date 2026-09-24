@@ -2,6 +2,7 @@ const express = require('express');
 const controller = require('../controllers/taskController');
 
 const router = express.Router();
+
 router.get('/', controller.list);
 router.get('/:id', controller.get);
 router.post('/', controller.create);

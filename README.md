@@ -1,41 +1,303 @@
-# GitOps Project — Three-tier task application
+* {
+  box-sizing: border-box;
+}
 
-Application simple et modulaire pour servir de base à une future chaîne DevOps. Elle contient uniquement le code applicatif : aucune configuration Docker, Kubernetes ou CI/CD n'est incluse.
+:root {
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --panel-alt: #eef4ff;
+  --text: #172033;
+  --muted: #64748b;
+  --border: #dfe7f1;
+  --primary: #2f5cff;
+  --primary-strong: #1b45da;
+  --success: #0f9d7a;
+  --danger: #d9485f;
+  --warning: #f39c12;
+  --shadow: 0 12px 26px rgba(18, 34, 77, 0.08);
+}
 
-## Architecture
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
 
-- **Frontend** : HTML/CSS/JavaScript vanilla dans `public/`.
-- **Backend/API** : Node.js + Express, organisé en routes, contrôleurs, services et repositories dans `src/`.
-- **Base de données** : SQLite via `better-sqlite3`, initialisée avec `db/schema.sql`.
+button, input, select, textarea {
+  font: inherit;
+}
 
-Le frontend consomme l'API REST `/api/tasks`. Les données sont stockées dans `data/tasks.db`, créé automatiquement au premier démarrage.
+.layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 100vh;
+}
 
-## Démarrage local
+.sidebar {
+  padding: 2rem 1.25rem;
+  background: linear-gradient(180deg, #0f172a 0%, #111f38 100%);
+  color: white;
+}
 
-Prérequis : Node.js 20+
+.brand-block {
+  margin-bottom: 1.5rem;
+}
 
-```bash
-npm install
-npm start
-```
+.eyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
 
-Puis ouvrir http://localhost:3000.
+h1, h2, h3, p {
+  margin-top: 0;
+}
 
-Mode développement :
+h1 {
+  margin-bottom: 0;
+  font-size: 2.2rem;
+}
 
-```bash
-npm run dev
-```
+.panel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 1.2rem;
+  backdrop-filter: blur(10px);
+}
 
-## API
+#task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
-- `GET /health` — vérification de santé
-- `GET /api/tasks` — liste des tâches
-- `GET /api/tasks/:id` — détail d'une tâche
-- `POST /api/tasks` — crée `{ "title": "...", "description": "..." }`
-- `PATCH /api/tasks/:id` — modifie `title`, `description` ou `completed`
-- `DELETE /api/tasks/:id` — supprime une tâche
+#task-form label,
+.filter-tools label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+}
 
-## Suite DevOps prévue
+input, textarea, select {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.72rem 0.8rem;
+  background: #fff;
+  color: var(--text);
+}
 
-Les étapes suivantes pourront être ajoutées séparément : Dockerfile et compose, manifestes Helm/Kubernetes, pipeline CI/CD, tests automatisés, gestion des secrets et observabilité.
+textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.inline-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.primary-button,
+.delete-button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.primary-button {
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+}
+
+.primary-button:hover {
+  background: var(--primary-strong);
+}
+
+.message {
+  min-height: 1.2rem;
+  margin: 0;
+  color: #d9fbe9;
+  font-size: 0.9rem;
+}
+
+.message.error {
+  color: #ffd1d8;
+}
+
+.main-content {
+  padding: 2rem;
+}
+
+.topbar {
+  margin-bottom: 1rem;
+}
+
+.topbar h2 {
+  font-size: 2rem;
+  margin-bottom: 0;
+}
+
+.filters {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+.filter-tools {
+  display: grid;
+  grid-template-columns: 2fr 180px;
+  gap: 1rem;
+}
+
+.list-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.2rem;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.list-header h3 {
+  margin-bottom: 0;
+}
+
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.task-item {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem 1rem 0.8rem;
+  background: #f9fbff;
+}
+
+.task-item.done {
+  opacity: 0.7;
+}
+
+.task-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 700;
+}
+
+.check-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.priority-low {
+  background: #e6f5ef;
+  color: var(--success);
+}
+
+.priority-medium {
+  background: #fff4dc;
+  color: #a56a08;
+}
+
+.priority-high {
+  background: #ffe7eb;
+  color: var(--danger);
+}
+
+.description {
+  margin: 0.7rem 0 0.85rem;
+  color: var(--muted);
+}
+
+.task-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin-bottom: 0.85rem;
+}
+
+.delete-button {
+  background: #f8e7ea;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.delete-button:hover {
+  background: #f3d3d9;
+}
+
+.empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding-bottom: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .filter-tools,
+  .inline-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .task-row,
+  .task-meta,
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

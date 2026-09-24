@@ -1,24 +1,46 @@
 const service = require('../services/taskService');
 
-function list(_req, res) {
-  res.json(service.listTasks());
-}
+const list = async (req, res, next) => {
+  try {
+    res.json(await service.listTasks(req.query));
+  } catch (error) {
+    next(error);
+  }
+};
 
-function get(req, res) {
-  res.json(service.getTask(Number(req.params.id)));
-}
+const get = async (req, res, next) => {
+  try {
+    res.json(await service.getTask(req.params.id));
+  } catch (error) {
+    next(error);
+  }
+};
 
-function create(req, res) {
-  res.status(201).json(service.createTask(req.body));
-}
+const create = async (req, res, next) => {
+  try {
+    const task = await service.createTask(req.body);
+    res.status(201).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
 
-function update(req, res) {
-  res.json(service.updateTask(Number(req.params.id), req.body));
-}
+const update = async (req, res, next) => {
+  try {
+    const task = await service.updateTask(req.params.id, req.body);
+    res.json(task);
+  } catch (error) {
+    next(error);
+  }
+};
 
-function remove(req, res) {
-  service.deleteTask(Number(req.params.id));
-  res.status(204).send();
-}
+const remove = async (req, res, next) => {
+  try {
+    await service.deleteTask(req.params.id);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = { list, get, create, update, remove };

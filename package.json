@@ -1,15 +1,16 @@
 {
   "name": "gitops-project-three-tier-app",
-  "version": "1.0.0",
-  "description": "Simple modular three-tier task application for DevOps practice",
+  "version": "2.0.0",
+  "description": "Modular three-tier task management application built with frontend, backend, and database layers",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "better-sqlite3": "^11.3.0",
-    "express": "^4.21.1"
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "pg": "^8.13.1"
   },
   "engines": {
     "node": ">=20"

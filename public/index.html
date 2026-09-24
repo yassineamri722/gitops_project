@@ -1,36 +1,89 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevOps Task Board</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <main class="container">
-    <header>
-      <p class="eyebrow">Three-tier starter application</p>
-      <h1>DevOps Task Board</h1>
-      <p>Manage delivery tasks with a simple frontend, API, and SQLite database.</p>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskFlow</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <p class="eyebrow">3-tier application</p>
+          <h1>TaskFlow</h1>
+        </div>
 
-    <section class="card">
-      <form id="task-form">
-        <input id="title" name="title" placeholder="Task title" required maxlength="120">
-        <input id="description" name="description" placeholder="Description (optional)" maxlength="300">
-        <button type="submit">Add task</button>
-      </form>
-      <p id="message" class="message" role="status"></p>
-    </section>
+        <form id="task-form" class="panel">
+          <h2>Create task</h2>
 
-    <section>
-      <div class="section-heading">
-        <h2>Tasks</h2>
-        <span id="task-count"></span>
-      </div>
-      <ul id="task-list" class="task-list"></ul>
-    </section>
-  </main>
-  <script src="/app.js"></script>
-</body>
+          <label>
+            <span>Title</span>
+            <input id="title" name="title" type="text" maxlength="120" required />
+          </label>
+
+          <label>
+            <span>Description</span>
+            <textarea id="description" name="description" rows="3" maxlength="500"></textarea>
+          </label>
+
+          <div class="inline-fields">
+            <label>
+              <span>Priority</span>
+              <select id="priority" name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Due date</span>
+              <input id="dueDate" name="dueDate" type="date" />
+            </label>
+          </div>
+
+          <button type="submit" class="primary-button">Add task</button>
+          <p id="message" class="message" role="status"></p>
+        </form>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Operations board</p>
+            <h2>Team tasks</h2>
+          </div>
+        </header>
+
+        <section class="filters panel">
+          <div class="filter-tools">
+            <label>
+              <span>Search</span>
+              <input id="search" type="search" placeholder="Search by title or description" />
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select id="statusFilter">
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="list-panel">
+          <div class="list-header">
+            <h3>Task list</h3>
+            <span id="task-count">0 tasks</span>
+          </div>
+          <ul id="task-list" class="task-list"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
 </html>

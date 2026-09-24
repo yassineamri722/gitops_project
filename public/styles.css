@@ -1,26 +1,152 @@
-* { box-sizing: border-box; }
-:root { color-scheme: light; font-family: Inter, system-ui, sans-serif; color: #172033; background: #f4f7fb; }
-body { margin: 0; }
-.container { width: min(900px, calc(100% - 2rem)); margin: 0 auto; padding: 4rem 0; }
-header { margin-bottom: 2rem; }
-.eyebrow { color: #526dfe; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .75rem; }
-h1 { margin: .25rem 0; font-size: clamp(2rem, 5vw, 3.5rem); }
-h2 { margin: 0; }
-.card, .task { background: white; border: 1px solid #e3e8f0; border-radius: 14px; box-shadow: 0 8px 24px #243b5310; }
-.card { padding: 1rem; }
-form { display: grid; grid-template-columns: 1fr 1.5fr auto; gap: .75rem; }
-input { border: 1px solid #ccd5e3; border-radius: 8px; padding: .75rem; font: inherit; }
-button { border: 0; border-radius: 8px; padding: .75rem 1rem; color: white; background: #526dfe; cursor: pointer; font-weight: 700; }
-button:hover { background: #3f58dc; }
-.message { min-height: 1.2rem; margin: .75rem 0 0; color: #26734d; }
-.message.error { color: #bd3030; }
-.section-heading { display: flex; justify-content: space-between; align-items: center; margin: 2rem 0 1rem; }
-#task-count { color: #64748b; }
-.task-list { display: grid; gap: .75rem; padding: 0; margin: 0; list-style: none; }
-.task { position: relative; padding: 1rem 4.5rem 1rem 1rem; }
-.task label { display: flex; gap: .6rem; align-items: center; font-weight: 700; }
-.task p { margin: .5rem 0 0 1.45rem; color: #64748b; }
-.task.done span { color: #94a3b8; text-decoration: line-through; }
-.delete { position: absolute; right: 1rem; top: 1rem; background: #e74c3c; padding: .5rem .7rem; font-size: .8rem; }
-.empty { padding: 2rem; text-align: center; color: #64748b; }
-@media (max-width: 700px) { form { grid-template-columns: 1fr; } .container { padding-top: 2rem; } }
+const form = document.querySelector('#task-form');
+const titleInput = document.querySelector('#title');
+const descriptionInput = document.querySelector('#description');
+const priorityInput = document.querySelector('#priority');
+const dueDateInput = document.querySelector('#dueDate');
+const taskList = document.querySelector('#task-list');
+const taskCount = document.querySelector('#task-count');
+const searchInput = document.querySelector('#search');
+const statusFilter = document.querySelector('#statusFilter');
+const message = document.querySelector('#message');
+
+const state = {
+  search: '',
+  status: 'all',
+  page: 1,
+  limit: 20
+};
+
+async function request(url, options = {}) {
+  const response = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(errorBody.error || 'Request failed');
+  }
+
+  return response.status === 204 ? null : response.json();
+}
+
+async function loadTasks() {
+  const params = new URLSearchParams({
+    page: state.page,
+    limit: state.limit,
+    status: state.status,
+    search: state.search
+  });
+
+  const result = await request(`/api/tasks?${params.toString()}`);
+  const tasks = result.items || [];
+
+  taskList.innerHTML = tasks.length
+    ? tasks.map(renderTask).join('')
+    : '<li class="empty">No tasks found for this selection.</li>';
+
+  taskCount.textContent = `${result.total || 0} task${(result.total || 0) === 1 ? '' : 's'}`;
+}
+
+function renderTask(task) {
+  const dueLabel = task.dueDate ? `Due ${task.dueDate}` : 'No due date';
+
+  return `
+    <li class="task-item ${task.completed ? 'done' : ''}">
+      <div class="task-row">
+        <label class="check-row">
+          <input type="checkbox" data-action="toggle" data-id="${task.id}" ${task.completed ? 'checked' : ''} />
+          <span>${escapeHtml(task.title)}</span>
+        </label>
+
+        <span class="priority-badge priority-${task.priority || 'medium'}">${escapeHtml(task.priority || 'medium')}</span>
+      </div>
+
+      <p class="description">${escapeHtml(task.description || 'No description')}</p>
+      <div class="task-meta">
+        <span>${dueLabel}</span>
+        <span>${task.completed ? 'Completed' : 'Pending'}</span>
+      </div>
+
+      <button class="delete-button" data-action="delete" data-id="${task.id}">Delete</button>
+    </li>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[char]));
+}
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  try {
+    await request('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: titleInput.value,
+        description: descriptionInput.value,
+        priority: priorityInput.value,
+        dueDate: dueDateInput.value || null
+      })
+    });
+
+    form.reset();
+    priorityInput.value = 'medium';
+    showMessage('Task created successfully.');
+    await loadTasks();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+});
+
+taskList.addEventListener('click', async (event) => {
+  const target = event.target.closest('[data-action="delete"]');
+  if (!target) return;
+
+  try {
+    await request(`/api/tasks/${target.dataset.id}`, { method: 'DELETE' });
+    await loadTasks();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+});
+
+taskList.addEventListener('change', async (event) => {
+  if (event.target.dataset.action !== 'toggle') return;
+
+  try {
+    await request(`/api/tasks/${event.target.dataset.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ completed: event.target.checked })
+    });
+    await loadTasks();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+});
+
+searchInput.addEventListener('input', (event) => {
+  state.search = event.target.value.trim();
+  state.page = 1;
+  loadTasks().catch((error) => showMessage(error.message, true));
+});
+
+statusFilter.addEventListener('change', (event) => {
+  state.status = event.target.value;
+  state.page = 1;
+  loadTasks().catch((error) => showMessage(error.message, true));
+});
+
+function showMessage(text, isError = false) {
+  message.textContent = text;
+  message.className = `message ${isError ? 'error' : ''}`;
+}
+
+loadTasks().catch((error) => showMessage(error.message, true));

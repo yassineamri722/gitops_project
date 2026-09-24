@@ -1,48 +1,108 @@
 const { database } = require('../config/database');
 
-function findAll() {
-  return database.prepare(`
-    SELECT id, title, description, completed, created_at AS createdAt, updated_at AS updatedAt
+const columns = `
+  id,
+  title,
+  description,
+  completed,
+  priority,
+  due_date AS "dueDate",
+  created_at AS "createdAt",
+  updated_at AS "updatedAt"
+`;
+
+async function findAll({ status, search, page = 1, limit = 20 }) {
+  const values = [];
+  const filters = [];
+
+  if (status === 'completed' || status === 'pending') {
+    values.push(status === 'completed');
+    filters.push(`completed = $${values.length}`);
+  }
+
+  if (search) {
+    values.push(`%${search}%`);
+    filters.push(`(title ILIKE $${values.length} OR description ILIKE $${values.length})`);
+  }
+
+  const offset = (page - 1) * limit;
+  const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+
+  values.push(limit, offset);
+
+  const result = await database.query(`
+    SELECT ${columns}, COUNT(*) OVER()::integer AS "totalCount"
     FROM tasks
-    ORDER BY created_at DESC
-  `).all().map(normalize);
+    ${where}
+    ORDER BY completed ASC, created_at DESC
+    LIMIT $${values.length - 1} OFFSET $${values.length}
+  `, values);
+
+  const items = result.rows.map(normalize);
+
+  return {
+    items,
+    total: items[0]?.totalCount || 0,
+    page,
+    limit
+  };
 }
 
-function findById(id) {
-  const task = database.prepare(`
-    SELECT id, title, description, completed, created_at AS createdAt, updated_at AS updatedAt
-    FROM tasks WHERE id = ?
-  `).get(id);
-  return task ? normalize(task) : null;
+async function findById(id) {
+  const result = await database.query(`SELECT ${columns} FROM tasks WHERE id = $1`, [id]);
+  return result.rows[0] ? normalize(result.rows[0]) : null;
 }
 
-function create({ title, description = '' }) {
-  const result = database.prepare(`
-    INSERT INTO tasks (title, description) VALUES (?, ?)
-  `).run(title.trim(), description.trim());
-  return findById(result.lastInsertRowid);
+async function create({ title, description = '', priority = 'medium', dueDate = null }) {
+  const result = await database.query(`
+    INSERT INTO tasks (title, description, priority, due_date)
+    VALUES ($1, $2, $3, $4)
+    RETURNING ${columns}
+  `, [title.trim(), description.trim(), priority, dueDate || null]);
+
+  return normalize(result.rows[0]);
 }
 
-function update(id, { title, description, completed }) {
+async function update(id, { title, description, completed, priority, dueDate }) {
   const fields = [];
   const values = [];
-  if (title !== undefined) { fields.push('title = ?'); values.push(title.trim()); }
-  if (description !== undefined) { fields.push('description = ?'); values.push(description.trim()); }
-  if (completed !== undefined) { fields.push('completed = ?'); values.push(completed ? 1 : 0); }
-  if (!fields.length) return findById(id);
 
-  fields.push('updated_at = CURRENT_TIMESTAMP');
+  const addField = (field, value) => {
+    values.push(value);
+    fields.push(`${field} = $${values.length}`);
+  };
+
+  if (title !== undefined) addField('title', title.trim());
+  if (description !== undefined) addField('description', description.trim());
+  if (completed !== undefined) addField('completed', completed);
+  if (priority !== undefined) addField('priority', priority);
+  if (dueDate !== undefined) addField('due_date', dueDate || null);
+
+  if (!fields.length) {
+    return findById(id);
+  }
+
   values.push(id);
-  database.prepare(`UPDATE tasks SET ${fields.join(', ')} WHERE id = ?`).run(...values);
-  return findById(id);
+
+  const result = await database.query(`
+    UPDATE tasks
+    SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $${values.length}
+    RETURNING ${columns}
+  `, values);
+
+  return result.rows[0] ? normalize(result.rows[0]) : null;
 }
 
-function remove(id) {
-  return database.prepare('DELETE FROM tasks WHERE id = ?').run(id).changes > 0;
+async function remove(id) {
+  const result = await database.query('DELETE FROM tasks WHERE id = $1', [id]);
+  return result.rowCount > 0;
 }
 
 function normalize(task) {
-  return { ...task, completed: Boolean(task.completed) };
+  const safeTask = { ...task };
+  delete safeTask.totalCount;
+  return safeTask;
 }
 
 module.exports = { findAll, findById, create, update, remove };
